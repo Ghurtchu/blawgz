@@ -218,6 +218,23 @@ final case class PlayerProfile(
   achievement: Achievement,
   team: Team
 )
+        
+object PlayerProfile {
+  // companion object constructor for players with no id
+  def apply(
+    playerName: PlayerName,
+    rank: Rank,
+    stats: Stats,
+    achievement: Achievement,
+    team: Team): PlayerProfile =
+    new PlayerProfile(
+      PlayerId.gen,
+      playerName,
+      rank,
+      stats,
+      achievement,
+      team)
+}
 ```
 
 ```scala
@@ -304,31 +321,28 @@ Concrete running instances of **PlayerProfile** can be:
 
 ```scala
 val pp1 = for {
-  id    <- Some(PlayerId.gen)
   nm    <- PlayerName.fromString("<burrito_enthusiast>")
   rnk   <- Rank.fromInt(10)
   stats <- Stats.fromWinsAndLosses(wins = 1, losses = 2)
   ach   <- Achievement.fromString("c")
   tm    <- Team.fromString("k")
-} yield PlayerProfile(id, nm, rnk, stats, ach, tm)
+} yield PlayerProfile(nm, rnk, stats, ach, tm)
 
 val pp2 = for {
-  id    <- Some(PlayerId.gen)
   nm    <- PlayerName.fromString("flatMapEmAll")
   rnk   <- Rank.fromInt(100)
   stats <- Stats.fromWinsAndLosses(wins = 30, losses = 20)
   ach   <- Achievement.fromString("s")
   tm    <- Team.fromString("s")
-} yield PlayerProfile(id, nm, rnk, stats, ach, tm)
+} yield PlayerProfile(nm, rnk, stats, ach, tm)
 
 val pp3 = for {
-  id    <- Some(PlayerId.gen)
   nm    <- PlayerName.fromString("_CatamorphisT_")
   rnk   <- Rank.fromInt(68)
   stats <- Stats.fromWinsAndLosses(wins = 17, losses = 12)
   ach   <- Achievement.fromString("s")
   tm    <- Team.fromString("s")
-} yield PlayerProfile(id, nm, rnk, stats, ach, tm)
+} yield PlayerProfile(nm, rnk, stats, ach, tm)
 
 // and so on and so forth
 ```
