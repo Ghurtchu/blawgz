@@ -53,6 +53,16 @@ object Divide {
   def ofEither(dividend: Double, divisor: Double): Either[DivisionByZero, Divide] = 
     ofOption(dividend, divisor).toRight(DivisionByZero)
 
+  object Program extends App { 
+  
+    val (dividend, divisor) = getDividendAndDivisor()
+    val divideOrError = Divide.ofEither(dividend, divisor)
+
+    divideOrError match { 
+      case Right(divide) => ??? // return computed division
+      case Left(error)   => ??? // return stringified error
+    }  
+  }
 }
 ```
 
