@@ -164,28 +164,27 @@ def instructions: Option[List[UserAction]] = {
   for {
     first      <- MoveCursor.at((1.5, 0.5))
     leftClick  <- MouseButton.fromString("l")
-    second     <- Some(List(Click(leftClick), Click(leftClick)))
+    second     =  List(Click(leftClick), Click(leftClick))
     third      <- MoveCursor.at((2.5, 17.0))
-    fourth     <- Some(second.head)
-    fifth      <- Some {
-      Press('y') :: Press('o') :: Press('u') ::
-      Press('t') :: Press('u') :: Press('b') ::
-      Press('e') :: Press('.') :: Press('c') ::
-      Press('o') :: Press('m') :: Nil
-    }
-    sixth      <- Some(Press('\n'))
+    fourth     =  Click(leftClick)
+    fifth      =  List(
+      Press('y'), Press('o'), Press('u'),
+      Press('t'), Press('u'), Press('b'),
+      Press('e'), Press('.'), Press('c'),
+      Press('o'), Press('m')
+    )
+    sixth      =  Press('\n')
     seventh    <- MoveCursor.at((8.6, 16.4))
-    eighth     <- Some(fourth)
-    ninth      <- Some {
-      Press('P') :: Press('l') :: Press('i') ::
-      Press('n') :: Press('i') :: Nil
-    }
-    tenth      <- Some(sixth)
-    eleventh   <- Some(List.fill(18)(ScrollDirection.fromString("d")).flatten.map(Scroll.apply))
+    eighth     =  Click(leftClick)
+    ninth      =  List(
+      Press('P'), Press('l'), Press('i'),
+      Press('n'), Press('i')
+    )
+    tenth      =  Click(leftClick)
+    eleventh   =  List.fill(18)(ScrollDirection.fromString("d")).flatten.map(Scroll.apply)
     twelfth    <- MoveCursor.at((5.5, 3.0))
-    thirteenth <- Some(eighth)
+    thirteenth =  Click(leftClick)
   } yield first :: second ::: third :: fourth :: fifth ::: List(sixth, seventh, eighth) ::: ninth ::: tenth :: eleventh ::: List(twelfth, thirteenth)
-}
 ```
 And now let’s see a beautiful pattern matching on a **sum type**:
 
