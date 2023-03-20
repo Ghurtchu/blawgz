@@ -1,0 +1,372 @@
+# Functional data modeling
+
+Data engineering, Big Data, Data lakes, Databases, Data warehouses, Data streaming, Data pipelines…
+
+How many such terms do you need to hear until you’re convinced that we are indeed living in the age of Data?
+
+It is pity that the majority of mainstream programming languages realised only later that it is “a must” for a programming language to have dedicated features for dealing with data.
+
+A set of new features which we are currently observing in mainstream programming languages (data classes, records and so on) is a proliferation of such a necessity.
+
+Let’s be honest, dealing with business domain models can be extremely tough endeavour. However, by approaching this problem in a principled and systematic way we gain the ability to set the correct expectations with respect to dealing with possible adversities later.
+
+Why do we love formulas? Simple — they just work. Most of the times we don’t care about how they were derived, we just apply them and they yield correct results.
+
+What if I tell you that by failing in data modeling we are risking the app or database state? I myself don’t remember exactly how many times I had to deal with fixing contaminated app state / database due to the inability of my programming language to correctly represent the domain I had dealt with.
+
+What if I tell you that there is a rescue to that? We have such a “formula” for data modeling in software development — **Algebraic Data Types**.
+
+In functional programming and type theory there is a concept of **Algebraic Data Type** which is characterised by two representations: **Sum type** and **Product type**. It is worth to mention that **Sum type** and **Product type** are all you need to model your business domain data extremely accurately.
+
+Solid **pattern matching** capabilities are required to fully enable the power of ADT-s in which Scala really shines.
+
+In this blogpost we will also use **Smart constructors**. Smart constructors disallow the existence of incorrect state in our apps.
+
+Let me show you a fairly straightforward example before we dive deep into **ADT**-s. This is important because we will be using **smart constructors** later as well.
+
+Let’s say we are receiving a command from outer world which looks like the following:
+
+```scala
+final case class Divide(dividend: Double, divisor: Double)
+```
+
+Can you spot the problem here? Well — division by zero.
+
+In order to disallow anyone to do that we must make the primary constructor private and expose the special constructor created by us, which can communicate what may go wrong while creating an instance of **Divide** command.
+
+Solution:
+```scala
+sealed abstract case class Divide private (dividend: Double, divisor: Double)
+// sealed = disallow extensions
+// abstract = remove .copy() which may be abused, like Divide(1, 2).copy(divisor = 0)
+// case = make primary constructor parameters as fields, pattern matching
+// private = make primary constructor private
+
+object Divide { 
+
+  trait DivisionByZero
+  object DivisionByZero extends DivisionByZero
+  
+  def ofOption(dividend: Double, divisor: Double): Option[Divide] = 
+    Option.when(divisor != 0)(new Divide(dividend, divisor){})
+  
+  def ofEither(dividend: Double, divisor: Double): Either[DivisionByZero, Divide] = 
+    ofOption(dividend, divisor).toRight(DivisionByZero)
+
+}
+```
+
+Some people don’t use **abstract** keyword because they want to retain **copy** method for **case classes** which is completely fine.
+
+**Smart constructors** virtually eliminate the problem associated with representing incorrect data which in turn removes the problem with app state / database contamination.
+
+Let’s start with **Sum types**. **Sum type** is a data type which has a finite amount of representations, that’s it. Each subtype itself can have a complex or trivial structure but the important thing is that the amount of subtypes must be finite.
+
+In Scala this is achieved by sealing the trait and putting all of its’ subtypes in the same file, preferably in a companion object of that trait.
+
+Let’s model the user interaction with the personal desktop computer on the physical level. User can press any key using keyboard, move mouse cursor, click mouse buttons, scroll the mouse wheel and click on mouse wheel, that’s basically it.
+
+Let’s translate that into Scala code:
+```scala
+// sum type
+sealed trait UserAction
+
+object UserAction {
+
+  type Point = (Double, Double)
+
+  final case class Press(key: Key)                          extends UserAction
+  final case class Click(button: MouseButton)               extends UserAction
+  final case class Scroll(direction: ScrollDirection)       extends UserAction
+  sealed abstract case class MoveCursor private (at: Point) extends UserAction
+
+  object MoveCursor {
+
+    // x point can be located in range [0, 30]
+    // y point can be located in range [0, 18]
+
+    private lazy val xRange = (0, 30)
+    private lazy val yRange = (0, 18)
+
+    private implicit class IntTupleOps(self: (Int, Int)) {
+      def includes(double: Double): Boolean = double >= self._1.toDouble && double <= self._2.toDouble
+    }
+
+    // smart constructor
+    def at: Point => Option[MoveCursor] = {
+      case (x, y) if xRange.includes(x) && yRange.includes(y) => Some(new MoveCursor((x, y)) {})
+      case _ => None
+    }
+  }
+
+  final case class Key(value: Char) extends AnyVal
+
+  implicit def charToKey: Char => Key = Key.apply
+
+  // sum type
+  sealed trait MouseButton
+
+  object MouseButton {
+    case object Right extends MouseButton
+    case object Left  extends MouseButton
+    case object Wheel extends MouseButton
+
+    // smart constructor
+    def fromString: String => Option[MouseButton] = {
+      case "r" => Some(Right)
+      case "l" => Some(Left)
+      case "w" => Some(Wheel)
+      case _   => None
+    }
+  }
+
+  // sum type
+  sealed trait ScrollDirection
+
+  object ScrollDirection {
+    case object Up   extends ScrollDirection
+    case object Down extends ScrollDirection
+
+    // smart constructor
+    def fromString: String => Option[ScrollDirection] = {
+      case "u" => Some(Up)
+      case "d" => Some(Down)
+      case _   => None
+    }
+  }
+}
+```
+
+Cool, now let’s write a program which simulates the user interaction with the machine.
+
+This is a sequence of high level operations user should perform:
+
+- move cursor at coordinates (1.5, 0.5) where google chrome icon is located
+- double click left mouse button to open it
+- move cursor at coordinates (2.5, 17.0) where google chrome search bar is located
+- click left mouse button to enable search
+- type “youtube.com” in search bar
+- press “Enter”, equivalent to type “Enter” for  which the char code is new line character — `\n`
+- move cursor at coordinates (8.6, 16.4) where youtube search bar is located
+- click left mouse button to enable search
+- type “Plini” in youtube search bar
+- click “Enter” again
+- scroll down 18 times until the desired video appears
+- move cursor at coordinates (5.5, 3.0) where the desired video is located
+- click left mouse button to open it
+- enjoy the good music! ❤ https://www.youtube.com/watch?v=Rv_a6rlRjZk
+Scala code:
+
+```scala
+def instructions: Option[List[UserAction]] = {
+  import UserAction._
+
+  for {
+    first      <- MoveCursor.at((1.5, 0.5))
+    leftClick  <- MouseButton.fromString("l")
+    second     <- Some(List(Click(leftClick), Click(leftClick)))
+    third      <- MoveCursor.at((2.5, 17.0))
+    fourth     <- Some(second.head)
+    fifth      <- Some {
+      Press('y') :: Press('o') :: Press('u') ::
+      Press('t') :: Press('u') :: Press('b') ::
+      Press('e') :: Press('.') :: Press('c') ::
+      Press('o') :: Press('m') :: Nil
+    }
+    sixth      <- Some(Press('\n'))
+    seventh    <- MoveCursor.at((8.6, 16.4))
+    eighth     <- Some(fourth)
+    ninth      <- Some {
+      Press('P') :: Press('l') :: Press('i') ::
+      Press('n') :: Press('i') :: Nil
+    }
+    tenth      <- Some(sixth)
+    eleventh   <- Some(List.fill(18)(ScrollDirection.fromString("d")).flatten.map(Scroll.apply))
+    twelfth    <- MoveCursor.at((5.5, 3.0))
+    thirteenth <- Some(eighth)
+  } yield first :: second ::: third :: fourth :: fifth ::: List(sixth, seventh, eighth) ::: ninth ::: tenth :: eleventh ::: List(twelfth, thirteenth)
+}
+```
+And now let’s see a beautiful pattern matching on a **sum type**:
+
+```scala
+object Program extends App { 
+  
+  // exhaustive pattern matching enumerating all subtypes
+  def logActions(actions: List[UserAction]): Unit = actions.foreach {
+    case UserAction.Press(key)        => println(s"Pressing a $key")
+    case UserAction.Click(button)     => println(s"Clicking a $button")
+    case UserAction.Scroll(direction) => println(s"Scrolling $direction")
+    case UserAction.MoveCursor(at)    => println(s"Moving cursor $at")
+  }
+  
+  instructions.foreach(logActions) // console output
+}
+```
+
+So, in essence you can think of **sum types** as enums which are pattern matchable.
+
+**Product types** are data types which can be compared to records in the typical database or tuples consisting of several different fields. This comparison signifies the fact that the amount of representations of product types can be practically infinite based on combinatorics — permutations of field values.
+
+A typical example can be a **PlayerProfile**:
+
+```scala
+final case class PlayerProfile(
+  playerId: PlayerId,
+  playerName: PlayerName,
+  rank: Rank,
+  stats: Stats,
+  achievement: Achievement,
+  team: Team
+)
+```
+
+```scala
+sealed abstract case class PlayerId private (value: String)
+
+object PlayerId {
+  def gen: PlayerId = new PlayerId(java.util.UUID.randomUUID().toString) {}
+}
+
+sealed abstract case class PlayerName private (value: String)
+
+object PlayerName {
+  def fromString: String => Option[PlayerName] = {
+    case input if input.nonEmpty && input.length <= 20 => Some(new PlayerName(input) {})
+    case _ => None
+  }
+}
+
+sealed abstract case class Stats private (value: Int)
+
+object Stats {
+  def fromWinsAndLosses(wins: Int, losses: Int): Option[Stats] =  (wins, losses) match {
+    case (w, l) if w >= 0 =>
+      if (l == 0) Some(new Stats(w) {})
+      else if (l > 0) Some (new Stats(w / l) {})
+      else None
+    case _ => None
+  }
+}
+
+sealed abstract case class Rank private (value: Int)
+
+object Rank {
+  def fromInt: Int => Option[Rank] = {
+    case input if (1 to 100).contains(input) => Some(new Rank(input) {})
+    case _ => None
+  }
+}
+
+// sum type
+sealed trait Achievement
+
+object Achievement {
+  
+  case object Champion extends Achievement
+  case object Pro      extends Achievement
+  case object Lead     extends Achievement
+  case object Superior extends Achievement
+
+  def fromString: String => Option[Achievement] = {
+    case "c" => Some(Champion)
+    case "p" => Some(Pro)
+    case "l" => Some(Lead)
+    case "s" => Some(Superior)
+    case _   => None
+  }
+}
+
+// sum type
+sealed trait Team
+
+object Team {
+
+  case object Scala   extends Team
+  case object Kotlin  extends Team
+  case object Java    extends Team
+  case object Clojure extends Team
+  case object Groovy  extends Team
+
+  def fromString: String => Option[Team] = {
+    case "s" => Some(Scala)
+    case "k" => Some(Kotlin)
+    case "j" => Some(Java)
+    case "c" => Some(Clojure)
+    case "g" => Some(Groovy)
+    case _   => None
+  }
+}
+```
+
+**PlayerProfile** is a **product type** because it contains a few fields and can be represented in millions of ways, hence — term product.
+
+Concrete running instances of **PlayerProfile** can be:
+
+```scala
+val pp1 = for {
+  id    <- Some(PlayerId.gen)
+  nm    <- PlayerName.fromString("<burrito_enthusiast>")
+  rnk   <- Rank.fromInt(10)
+  stats <- Stats.fromWinsAndLosses(wins = 1, losses = 2)
+  ach   <- Achievement.fromString("c")
+  tm    <- Team.fromString("k")
+} yield PlayerProfile(id, nm, rnk, stats, ach, tm)
+
+val pp2 = for {
+  id    <- Some(PlayerId.gen)
+  nm    <- PlayerName.fromString("flatMapEmAll")
+  rnk   <- Rank.fromInt(100)
+  stats <- Stats.fromWinsAndLosses(wins = 30, losses = 20)
+  ach   <- Achievement.fromString("s")
+  tm    <- Team.fromString("s")
+} yield PlayerProfile(id, nm, rnk, stats, ach, tm)
+
+val pp3 = for {
+  id    <- Some(PlayerId.gen)
+  nm    <- PlayerName.fromString("_CatamorphisT_")
+  rnk   <- Rank.fromInt(68)
+  stats <- Stats.fromWinsAndLosses(wins = 17, losses = 12)
+  ach   <- Achievement.fromString("s")
+  tm    <- Team.fromString("s")
+} yield PlayerProfile(id, nm, rnk, stats, ach, tm)
+
+// and so on and so forth
+```
+
+It is practically impossible to enumerate all concrete instances of **PlayerProfile**, this is why it is called **product type**.
+
+Though in real world apps **product types** can be much more complicated and involved (more fields, more complex structures and so on).
+
+No worries, **pattern matching** to the rescue!
+
+Let’s write a method which counts the amount of players who are above Rank 25 with stats less than 5.0 from Team Scala:
+```scala
+def count: List[PlayerProfile] => Int = _.collect {
+  case PlayerProfile(_, _, rank, stats, _, _: Team.Scala.type) 
+    if rank.value >= 25 && stats.value <= 5.0 => 1
+}.sum
+```
+
+```scala
+val profiles = (pp1 :: pp2 :: pp3 :: Nil).flatten
+
+println(count(profiles)) // 2
+```
+
+We could also make **count** method more configurable by adding a few method args to it but that is fine.
+
+So, to wrap up: **Algebraic Data Types** are data types which have certain properties, to put it simply:
+
+- **Sum types** are enumerations.
+- **Product types** are records.
+
+**Algebraic Data Types** combined with **smart constructors** and **pattern matching** are all we need to model our domain as precisely as we want.
+
+There are more advanced approaches in Scala which involves runtime performance optimisations and compile time validations with respect to modeling domain with ADT-s by utilising libraries such as:
+
+**refined** — https://github.com/fthomas/refined (expressing constraints at the type level)
+
+**newtype** — https://github.com/estatico/scala-newtype (solves problems related to zero cost runtime typed wrappers — AnyVal)
+
+Cheers!
