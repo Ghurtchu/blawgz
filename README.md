@@ -9,4 +9,4 @@ A collection of my personal blogs about software development.
 
 4) ***Functional error handling*** - https://scalevolvable.medium.com/functional-error-handling-4d5f5368b8b2
 
-5) ***Immutability by example*** - https://scalevolvable.medium.com/building-a-tiny-library-using-the-principles-of-immutability-aa0f048ba28e
+5) ***Immutability*** - https://scalevolvable.medium.com/building-a-tiny-library-using-the-principles-of-immutability-aa0f048ba28e
