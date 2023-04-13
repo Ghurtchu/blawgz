@@ -201,7 +201,7 @@ Imagine that you have a computation which needs to be evaluated in some function
 ```scala
 def process[A](block: () => A): Unit = {
   println("processing...")
-  val result = computation() // evaluated inside the function
+  val result = block() // evaluated inside the function
   println(result)
 }
 
