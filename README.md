@@ -11,4 +11,6 @@ A collection of my personal blogs about software development.
 
 5) ***Immutability*** - https://scalevolvable.medium.com/building-a-tiny-library-using-the-principles-of-immutability-aa0f048ba28e
 
-6) ***Underrated Features in Scala*** - https://scalevolvable.medium.com/hidden-gems-in-scala-standard-library-b82b0e222c93
+6) ***Underrated Features in Scala*** - https://scalajobs.com/blog/underrated-scala-features-and-hidden-gems/
+
+7) ***Comprehensive data validation in Scala*** - https://scalajobs.com/blog/comprehensive-data-validation-in-scala/
