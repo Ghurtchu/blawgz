@@ -14,3 +14,5 @@ A collection of my personal blogs about software development.
 6) ***Underrated Features in Scala*** - https://scalajobs.com/blog/underrated-scala-features-and-hidden-gems/
 
 7) ***Comprehensive data validation in Scala*** - https://scalajobs.com/blog/comprehensive-data-validation-in-scala/
+
+8) ***A Functional Load Balancer with Scala, Http4s and Cats Effect*** - https://blog.rockthejvm.com/load-balancer/
