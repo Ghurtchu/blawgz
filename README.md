@@ -16,3 +16,5 @@ A collection of my personal blogs about software development.
 7) ***Comprehensive data validation in Scala*** - https://scalajobs.com/blog/comprehensive-data-validation-in-scala/
 
 8) ***A Functional Load Balancer with Scala, Http4s and Cats Effect*** - https://blog.rockthejvm.com/load-balancer/
+
+9) ***Functional Parallel Programming in the wild*** - https://blog.rockthejvm.com/cats-effect-parallelism/
