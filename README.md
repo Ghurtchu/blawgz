@@ -1,5 +1,5 @@
-# personal-blogs
-A collection of my personal blogs about software development.
+# blawgz
+A collection of my personal blogs about software development listed chronologically
 
 1) ***Variance in Scala*** - https://scalajobs.com/blog/demystifying-variance-in-scala/
 
