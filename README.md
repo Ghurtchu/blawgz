@@ -18,3 +18,5 @@ My personal blogs about software development, listed chronologically:
 8) ***A Functional Load Balancer with Scala, Http4s and Cats Effect*** - https://blog.rockthejvm.com/load-balancer/
 
 9) ***Functional Parallel Programming in the wild*** - https://blog.rockthejvm.com/cats-effect-parallelism/
+
+10) ***Distributed Remote Code Execution Engine*** - https://blog.rockthejvm.com/remote-code-execution-engine/
